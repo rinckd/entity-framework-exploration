@@ -7,8 +7,51 @@ namespace SamuraiApp.Tests.Builders
 {
     public static class EfTestData
     {
-        public static readonly DateTime DummyBookStartDate = new DateTime(2010, 1, 1);
+        private static readonly DateTime DummyBookStartDate = new DateTime(2010, 1, 1);
 
+        public static void SeedDatabaseDummyBooks(this SamuraiContext context, int numBooks = 10)
+        {
+            context.Books.AddRange(CreateDummyBooks(numBooks));
+            context.SaveChanges();
+        }
+
+        private static IEnumerable<Book> CreateDummyBooks(int numBooks = 10, bool stepByYears = false, bool setBookId = true)
+        {
+            var result = new List<Book>();
+            var commonAuthor = new Author {Name = "CommonAuthor"};
+            for (var i = 0; i < numBooks; i++)
+            {
+                var reviews = new List<Review>();
+                for (var j = 0; j < i; j++)
+                {
+                    reviews.Add(new Review {VoterName = j.ToString(), NumStars = (j % 5) + 1});
+                }
+
+                var book = new Book
+                {
+                    BookId = setBookId ? i + 1 : 0,
+                    Title = $"Book{i:D4} Title",
+                    Description = $"Book{i:D4} Description",
+                    Price = (short) (i + 1),
+                    ImageUrl = $"Image{i:D4}",
+                    PublishedOn = stepByYears ? DummyBookStartDate.AddYears(i) : DummyBookStartDate.AddDays(i),
+                    Reviews = reviews
+                };
+
+                var author = new Author {AuthorId = i + 1, Name = $"Author{i:D4}"};
+                book.AuthorsLink = new List<BookAuthor>
+                {
+                    new() {Book = book, Author = author, Order = 0},
+
+                };
+
+                result.Add(book);
+            }
+
+            return result;
+        }
+
+        
         public static List<Book> SeedDatabaseFourBooks(this SamuraiContext context)
         {
             var books = CreateFourBooks();
@@ -16,8 +59,8 @@ namespace SamuraiApp.Tests.Builders
             context.SaveChanges();
             return books;
         }
-        
-         public static List<Book> CreateFourBooks()
+
+        private static List<Book> CreateFourBooks()
         {
             var editorsChoice = new Tag { TagId = "Editor's Choice" };
             var architectureTag = new Tag {TagId = "Architecture"};
@@ -76,12 +119,12 @@ namespace SamuraiApp.Tests.Builders
                 {new BookAuthor {Author = new Author {Name = "Future Person"}, Book = book4}};
             book4.Reviews = new List<Review>
             {
-                new Review
+                new()
                 {
                     VoterName = "Jon P Smith", NumStars = 5,
                     Comment = "I look forward to reading this book, if I am still alive!"
                 },
-                new Review
+                new()
                 {
                     VoterName = "Albert Einstein", NumStars = 5, Comment = "I write this book if I was still alive!"
                 }
